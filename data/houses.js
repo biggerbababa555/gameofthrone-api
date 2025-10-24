@@ -28,8 +28,6 @@ export const RANKS = [
   "Extinct Houses",
 ];
 
-// ✅ เหลือเฉพาะข้อมูลที่ใช้ใน GoT (สรุปตอนปลายเรื่องในบริบทซีรีส์/เล่มหลัก)
-// โลโก้ให้คุณใส่ไฟล์เองใน public/images/houses/ แล้วอ้างด้วย path เริ่มต้นด้วย /images/...
 export const houses = [
   // ===== Crownlands =====
 
@@ -101,7 +99,7 @@ export const houses = [
     name: "Baelish of Harrenhal",
     rank: "Great House",
     region: "Riverlands",
-    logo: "/images/houses/baelish.png",
+    logo: "/images/houses/baelish2.png",
   },
   {
     id: "frey-twins",
