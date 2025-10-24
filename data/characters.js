@@ -7,7 +7,7 @@ export const characters = [
     house: "Stark",
     gender: "male",
     weapon: "Longclaw (Valyrian steel)",
-    image: "/images/jon-snow.png",
+    image: "/images/characters/jon-snow.png",
   },
   {
     id: "daenerys-targaryen",
@@ -16,7 +16,7 @@ export const characters = [
     house: "Targaryen",
     gender: "female",
     weapon: "Dragons",
-    image: "/images/daenerys-targaryen.png",
+    image: "/images/characters/daenerys-targaryen.png",
   },
   {
     id: "tyrion-lannister",
@@ -25,7 +25,7 @@ export const characters = [
     house: "Lannister",
     gender: "male",
     weapon: "Crossbow (sometimes), wit",
-    image: "/images/tyrion-lannister.png",
+    image: "/images/characters/tyrion-lannister.png",
   },
   // HOTD
   //   {
