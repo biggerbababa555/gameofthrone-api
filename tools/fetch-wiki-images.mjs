@@ -1,23 +1,18 @@
 // tools/fetch-wiki-images.mjs
 // Node >=18 (มี fetch ติดมาแล้ว). ใช้ ESM (.mjs)
-// ดึงรูปจาก Wikipedia/Wikimedia REST API แล้วบันทึกเป็น .png ตามชื่อไฟล์ที่กำหนด
 
 import fs from "fs";
 import path from "path";
 import { pipeline } from "stream";
 import { promisify } from "util";
+import * as cheerio from "cheerio";
 const streamPipeline = promisify(pipeline);
 
 // ------------------- ตั้งค่าโฟลเดอร์ปลายทาง -------------------
 const OUT_DIR = path.resolve(process.cwd(), "public/images/characters");
-// ถ้าคุณอยากเก็บในโฟลเดอร์ชื่อ "characters" แยกต่างหากก็แก้เป็น:
-// const OUT_DIR = path.resolve(process.cwd(), "characters");
-
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
-// ------------------- รายชื่อไฟล์ -> Wikipedia Title -------------------
-// ชุดนี้ครอบคลุมตัวหลัก/เด่นจำนวนมาก (80+ รายการ) — เพิ่มได้เองง่าย ๆ
-// ชื่อไฟล์ต้อง "ตรง" กับ JSON ของคุณ
+// ------------------- รายชื่อไฟล์ -> ชื่อเรื่อง -------------------
 const MAP = [
   // North / Stark
   ["eddard-stark.png", "Eddard Stark"],
@@ -29,14 +24,12 @@ const MAP = [
   ["rickon-stark.png", "Rickon Stark"],
   ["benjen-stark.png", "Benjen Stark"],
   ["lyanna-stark.png", "Lyanna Stark"],
-  ["jon-snow.png", "Jon Snow (Game of Thrones)"],
+  ["jon-snow.png", "Jon Snow"], // AWOIAF ใช้ "Jon Snow"
 
   ["roose-bolton.png", "Roose Bolton"],
   ["ramsay-bolton.png", "Ramsay Bolton"],
   ["domeric-bolton.png", "Domeric Bolton"],
-
   ["wyman-manderly.png", "Wyman Manderly"],
-
   ["jeor-mormont.png", "Jeor Mormont"],
   ["jorah-mormont.png", "Jorah Mormont"],
   ["lyanna-mormont.png", "Lyanna Mormont"],
@@ -49,14 +42,14 @@ const MAP = [
   ["qhorin-halfhand.png", "Qhorin Halfhand"],
   ["othell-yarwyck.png", "Othell Yarwyck"],
   ["janos-slynt.png", "Janos Slynt"],
-  ["maester-aemon.png", "Aemon Targaryen (son of Maekar I)"],
+  ["maester-aemon.png", "Aemon Targaryen"], // ที่ AWOIAF เป็น "Aemon Targaryen"
   ["tormund.png", "Tormund Giantsbane"],
   ["ygritte.png", "Ygritte"],
   ["mance-rayder.png", "Mance Rayder"],
   ["styr.png", "Styr"],
   ["osha.png", "Osha"],
-  ["craster.png", "Craster (character)"],
-  ["gilly.png", "Gilly (Game of Thrones)"],
+  ["craster.png", "Craster"],
+  ["gilly.png", "Gilly"],
   ["jojen-reed.png", "Jojen Reed"],
   ["meera-reed.png", "Meera Reed"],
   ["hodor.png", "Hodor"],
@@ -72,19 +65,15 @@ const MAP = [
   ["lancel.png", "Lancel Lannister"],
   ["martyn-lannister.png", "Martyn Lannister"],
   ["willem-lannister.png", "Willem Lannister"],
-
   ["gregor.png", "Gregor Clegane"],
   ["sandor.png", "Sandor Clegane"],
-
   ["bronn.png", "Bronn"],
   ["podrick.png", "Podrick Payne"],
   ["qyburn.png", "Qyburn"],
   ["varys.png", "Varys"],
-
   ["joffrey.png", "Joffrey Baratheon"],
   ["tommen.png", "Tommen Baratheon"],
   ["myrcella.png", "Myrcella Baratheon"],
-
   ["high-sparrow.png", "High Sparrow"],
   ["septa-unella.png", "Septa Unella"],
 
@@ -146,7 +135,7 @@ const MAP = [
   ["yara-greyjoy.png", "Yara Greyjoy"],
   ["theon-greyjoy.png", "Theon Greyjoy"],
 
-  // Historic / Others (อาจไม่มีภาพเดี่ยวชัดในวิกิ)
+  // Historic / Others
   ["harren-hoare.png", "Harren the Black"],
   ["tyto-reyne.png", "House Reyne"],
 
@@ -165,10 +154,10 @@ const MAP = [
   ["mossador.png", "Mossador"],
   ["tycho-nestoris.png", "Tycho Nestoris"],
   ["jaqen.png", "Jaqen H'ghar"],
-  ["waif.png", "Waif (Game of Thrones)"],
+  ["waif.png", "Waif"],
   ["yezzan.png", "Yezzan zo Qaggaz"],
   ["prendahl.png", "Prendahl na Ghezn"],
-  ["mero.png", "Mero (Game of Thrones)"],
+  ["mero.png", "Mero"],
   ["razdal.png", "Razdal mo Eraz"],
   ["qotho.png", "Qotho"],
   ["kovarro.png", "Kovarro"],
@@ -187,7 +176,7 @@ const MAP = [
   // Brotherhood
   ["thoros.png", "Thoros of Myr"],
   ["anguy.png", "Anguy"],
-  ["lem.png", "Lem (Game of Thrones)"],
+  ["lem.png", "Lem"],
 
   // More North
   ["smalljon-umber.png", "Smalljon Umber"],
@@ -204,10 +193,10 @@ const MAP = [
 
   // Misc
   ["shae.png", "Shae"],
-  ["ros.png", "Ros (Game of Thrones)"],
+  ["ros.png", "Ros"],
   ["olyvar.png", "Olyvar"],
-  ["locke.png", "Locke (Game of Thrones)"],
-  ["selyse-florent.png", "Selyse Baratheon"],
+  ["locke.png", "Locke"],
+  ["selyse-florent.png", "Selyse Florent"],
   ["dontos-hollard.png", "Dontos Hollard"],
 
   // White Walkers
@@ -220,9 +209,79 @@ const MAP = [
   ["margaery-queen.png", "Margaery Tyrell"],
 ];
 
-// ------------------- ฟังก์ชันหลัก -------------------
+// ------------------- Helper -------------------
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
+function toAwoiafSlug(title) {
+  // แปลง "Lyanna Stark" -> "Lyanna_Stark"
+  // ตัดส่วนในวงเล็บออก (AWOIAF มักไม่มีวงเล็บ disambiguation แบบ Wikipedia)
+  const t = title.replace(/\s*\(.*?\)\s*/g, "").trim();
+  return t.replace(/\s+/g, "_");
+}
+
+function absolutizeAwoiafUrl(src) {
+  // src อาจเป็น //upload.wikimedia... หรือ /images/... หรือ https://...
+  if (src.startsWith("//")) return "https:" + src;
+  if (src.startsWith("/")) return "https://awoiaf.westeros.org" + src;
+  return src;
+}
+
+function originalFromMediaWikiThumb(u) {
+  // แปลง .../thumb/<hash>/<filename>/<WIDTH>px-<filename> -> .../<hash>/<filename>
+  try {
+    const url = new URL(u);
+    const parts = url.pathname.split("/");
+    const i = parts.indexOf("thumb");
+    if (i !== -1 && parts.length > i + 2) {
+      // /thumb/<hash1>/<hash2>/<FileName>/<sizepx-FileName>
+      // ลบ "thumb" และ segment สุดท้าย (size-file) ออก
+      const withoutThumb = parts.slice(0, i).concat(parts.slice(i + 1, -1));
+      url.pathname = withoutThumb.join("/");
+      return url.toString();
+    }
+  } catch {
+    // ไม่ใช่ URL สมบูรณ์ ก็ปล่อยไป
+  }
+  return u;
+}
+
+// ------------------- AWOIAF fetch -------------------
+async function getImageUrlFromAwoiaf(title) {
+  const slug = toAwoiafSlug(title);
+  const pageUrl = `https://awoiaf.westeros.org/index.php/${encodeURIComponent(
+    slug
+  )}`;
+  const res = await fetch(pageUrl, {
+    headers: {
+      "User-Agent": "got-images-fetcher/1.0",
+      Accept: "text/html,application/xhtml+xml",
+      "Accept-Language": "en-US,en;q=0.9",
+      Referer: "https://awoiaf.westeros.org/",
+    },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status} for AWOIAF: ${title}`);
+  const html = await res.text();
+
+  const $ = cheerio.load(html);
+
+  // 1) พยายามหาใน infobox ก่อน
+  let src =
+    $(".infobox img").first().attr("src") ||
+    $(".infobox .image img").first().attr("src") ||
+    // 2) ถ้าไม่เจอ ลองรูปแรกที่อยู่ในคอนเทนต์
+    $("#mw-content-text .image img").first().attr("src") ||
+    $("a.image img").first().attr("src") ||
+    null;
+
+  if (!src) return null;
+
+  src = absolutizeAwoiafUrl(src);
+  // แปลงจาก thumbnail เป็นต้นฉบับ ถ้าเป็นรูปแบบ MediaWiki
+  src = originalFromMediaWikiThumb(src);
+  return src;
+}
+
+// ------------------- Wikipedia fallback (เดิม) -------------------
 async function getImageUrlFromWikipedia(title) {
   const endpoint = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(
     title
@@ -230,53 +289,63 @@ async function getImageUrlFromWikipedia(title) {
   const res = await fetch(endpoint, {
     headers: { "User-Agent": "got-images-fetcher/1.0" },
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${title}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status} for Wikipedia: ${title}`);
   const data = await res.json();
-  // ใช้ original image (ถ้ามี) ตกลงไปหา thumbnail
   const url = data?.originalimage?.source || data?.thumbnail?.source || null;
   return url;
 }
 
+// ------------------- ดาวน์โหลด & เขียนไฟล์ -------------------
 async function downloadToPng(url, outPath) {
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    headers: { "User-Agent": "got-images-fetcher/1.0" },
+  });
   if (!res.ok) throw new Error(`Download failed: ${res.status}`);
   const buf = Buffer.from(await res.arrayBuffer());
 
-  // พยายามแปลงเป็น PNG ด้วย sharp หากติดตั้งไว้
   try {
     const sharp = (await import("sharp")).default;
     const png = await sharp(buf).png().toBuffer();
     fs.writeFileSync(outPath, png);
   } catch {
-    // ถ้าไม่มี sharp → เซฟไฟล์ดิบ (อาจเป็น jpg) แต่ตั้งนามสกุล .png ตามโจทย์
-    fs.writeFileSync(outPath, buf);
+    fs.writeFileSync(outPath, buf); // ไม่มี sharp -> เซฟดิบ ๆ นามสกุล .png
   }
 }
 
+// ------------------- Main -------------------
 async function run() {
   let ok = 0,
-    fail = 0,
-    skip = 0;
+    fail = 0;
+
   for (const [filename, title] of MAP) {
     const outPath = path.join(OUT_DIR, filename);
     try {
-      const imgUrl = await getImageUrlFromWikipedia(title);
+      // 1) ลอง AWOIAF ก่อน
+      let imgUrl = await getImageUrlFromAwoiaf(title);
+
+      // 2) ไม่เจอ -> fallback Wikipedia (เพื่ออัตราสำเร็จสูง)
+      if (!imgUrl) {
+        imgUrl = await getImageUrlFromWikipedia(title);
+      }
       if (!imgUrl) {
         console.warn(`⚠️  No image for "${title}" → ${filename}`);
         fail++;
         continue;
       }
+
       await downloadToPng(imgUrl, outPath);
       console.log(`✅ ${title} → ${filename}`);
       ok++;
-      // หน่วงนิดหน่อยกัน rate limit
-      await delay(200);
+
+      // กัน rate limit เบา ๆ
+      await delay(250);
     } catch (err) {
       console.warn(`❌ ${title} → ${filename} :: ${err.message}`);
       fail++;
     }
   }
-  console.log(`\nDone. Success: ${ok}, Failed: ${fail}, Skipped: ${skip}`);
+
+  console.log(`\nDone. Success: ${ok}, Failed: ${fail}`);
 }
 
 run().catch((e) => {
